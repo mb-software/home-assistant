@@ -2,6 +2,8 @@
 
 
 import logging
+import types
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -58,13 +60,13 @@ class PowerbrainDeviceSensor(CoordinatorEntity, SensorEntity):
         unit: str = "",
         deviceclass: str = "",
         stateclass: str = SensorStateClass.MEASUREMENT,
-        factor: float = 1,
+        state_modifier: Any = None,
     ) -> None:
         """Initialize sensor attributes."""
         super().__init__(coordinator)
         self.device = device
         self.attribute = attr
-        self.factor = factor
+        self.state_modifier = state_modifier
         self._attr_has_entity_name = True
         self._attr_unique_id = f"{coordinator.brain.attributes['vsn']['serialno']}_{self.device.dev_id}_{name}"
         self._attr_name = name
@@ -75,12 +77,23 @@ class PowerbrainDeviceSensor(CoordinatorEntity, SensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.factor != 1:
-            self._attr_native_value = (
-                self.device.attributes[self.attribute] * self.factor
+        if self.state_modifier is None:
+            self._attr_native_value = self.device.attributes[self.attribute]
+        elif isinstance(self.state_modifier, types.LambdaType):
+            self._attr_native_value = self.state_modifier(
+                self.device.attributes[self.attribute]
             )
         else:
-            self._attr_native_value = self.device.attributes[self.attribute]
+            self._attr_native_value = (
+                self.device.attributes[self.attribute] * self.state_modifier
+            )
+
+        # if self.factor != 1:
+        #     self._attr_native_value = (
+        #         self.device.attributes[self.attribute] * self.factor
+        #     )
+        # else:
+        #     self._attr_native_value = self.device.attributes[self.attribute]
         self.async_write_ha_state()
 
     @property
@@ -195,5 +208,20 @@ def create_evse_entities(coordinator: PowerbrainUpdateCoordinator, device: Devic
             0.001,
         )
     )
-    ret.append(PowerbrainDeviceSensor(coordinator, device, "state", "State"))
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "state",
+            "State",
+            state_modifier=lambda s: {
+                1: "1: Standby",
+                2: "2: Car connected",
+                3: "3: Charging",
+                4: "4: Charging/vent",
+                5: "5: Error",
+                6: "6: Offline",
+            }[s],
+        )
+    )
     return ret
