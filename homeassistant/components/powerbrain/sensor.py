@@ -1,6 +1,6 @@
 """Sensor platform."""
 
-from datetime import timedelta
+
 import logging
 
 from homeassistant.components.sensor import (
@@ -12,12 +12,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .__init__ import PowerbrainUpdateCoordinator
 from .const import DOMAIN
 from .powerbrain import Device, Powerbrain
 
@@ -31,41 +28,22 @@ async def async_setup_entry(
     # assuming API object stored here by __init__.py
     brain: Powerbrain = hass.data[DOMAIN][entry.entry_id]
 
-    coordinator = PowerbrainUpdateCoordinator(hass, brain)
-
-    await coordinator.async_config_entry_first_refresh()
-
     entities = []
     for device in brain.devices.values():
         if not device.attributes["is_evse"]:
-            entities.extend(create_meter_entities(coordinator, device))
+            entities.extend(
+                create_meter_entities(
+                    hass.data[DOMAIN][entry.entry_id + "_coordinator"], device
+                )
+            )
+        else:
+            entities.extend(
+                create_evse_entities(
+                    hass.data[DOMAIN][entry.entry_id + "_coordinator"], device
+                )
+            )
 
     async_add_entities(entities)
-
-
-class PowerbrainUpdateCoordinator(DataUpdateCoordinator):
-    """Coordinator to fetch data from the powerbrain api."""
-
-    def __init__(self, hass, brain: Powerbrain):
-        """Initialize my coordinator."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            # Name of the data. For logging purposes.
-            name="Powerbrain Api data",
-            # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=20),
-        )
-        self.brain = brain
-
-    async def _async_update_data(self):
-        """Fetch data from API endpoint."""
-        try:
-            # Note: asyncio.TimeoutError and aiohttp.ClientError are already
-            # handled by the data update coordinator.
-            await self.hass.async_add_executor_job(self.brain.update_device_status)
-        except Exception as err:
-            raise UpdateFailed(f"Error communicating with API: {err}") from err
 
 
 class PowerbrainDeviceSensor(CoordinatorEntity, SensorEntity):
@@ -77,7 +55,7 @@ class PowerbrainDeviceSensor(CoordinatorEntity, SensorEntity):
         device: Device,
         attr: str,
         name: str,
-        unit: str,
+        unit: str = "",
         deviceclass: str = "",
         stateclass: str = SensorStateClass.MEASUREMENT,
         factor: float = 1,
@@ -188,4 +166,34 @@ def create_meter_entities(coordinator: PowerbrainUpdateCoordinator, device: Devi
             0.001,
         )
     )
+    return ret
+
+
+def create_evse_entities(coordinator: PowerbrainUpdateCoordinator, device: Device):
+    """Create the entities for an evse device."""
+    ret = []
+
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "cur_charging_power",
+            "Charging Power",
+            "W",
+            SensorDeviceClass.POWER,
+        )
+    )
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "total_energy",
+            "Total Charging Energy",
+            "kWh",
+            SensorDeviceClass.ENERGY,
+            SensorStateClass.TOTAL_INCREASING,
+            0.001,
+        )
+    )
+    ret.append(PowerbrainDeviceSensor(coordinator, device, "state", "State"))
     return ret

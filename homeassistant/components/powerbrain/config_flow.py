@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 # Data scheme of the config flow
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_HOST): cv.string,
+        vol.Required(CONF_HOST, default="http://192.168.0.10"): cv.string,
         vol.Optional(CONF_SCAN_INTERVAL, default=20): cv.positive_int,
     }
 )
