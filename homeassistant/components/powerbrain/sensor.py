@@ -80,20 +80,29 @@ class PowerbrainDeviceSensor(CoordinatorEntity, SensorEntity):
         unit: str,
         deviceclass: str = "",
         stateclass: str = SensorStateClass.MEASUREMENT,
+        factor: float = 1,
     ) -> None:
         """Initialize sensor attributes."""
         super().__init__(coordinator)
         self.device = device
         self.attribute = attr
+        self.factor = factor
         self._attr_has_entity_name = True
         self._attr_unique_id = f"{coordinator.brain.attributes['vsn']['serialno']}_{self.device.dev_id}_{name}"
         self._attr_name = name
         self._attr_native_unit_of_measurement = unit
+        self._attr_device_class = deviceclass
+        self._attr_state_class = stateclass
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        self._attr_native_value = self.device.attributes[self.attribute]
+        if self.factor != 1:
+            self._attr_native_value = (
+                self.device.attributes[self.attribute] * self.factor
+            )
+        else:
+            self._attr_native_value = self.device.attributes[self.attribute]
         self.async_write_ha_state()
 
     @property
@@ -108,10 +117,6 @@ class PowerbrainDeviceSensor(CoordinatorEntity, SensorEntity):
             "manufacturer": "cFos",
             "model": self.device.attributes["model"],
         }
-
-    # @property
-    # def state(self):
-    #     return self._attr_state
 
 
 def create_meter_entities(coordinator: PowerbrainUpdateCoordinator, device: Device):
@@ -129,9 +134,10 @@ def create_meter_entities(coordinator: PowerbrainUpdateCoordinator, device: Devi
             device,
             "import",
             "Import",
-            "Wh",
+            "kWh",
             SensorDeviceClass.ENERGY,
             SensorStateClass.TOTAL_INCREASING,
+            0.001,
         )
     )
     ret.append(
@@ -140,10 +146,46 @@ def create_meter_entities(coordinator: PowerbrainUpdateCoordinator, device: Devi
             device,
             "export",
             "Export",
-            "Wh",
+            "kWh",
             SensorDeviceClass.ENERGY,
             SensorStateClass.TOTAL_INCREASING,
+            0.001,
         )
     )
-
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "current_l1",
+            "Current L1",
+            "A",
+            SensorDeviceClass.CURRENT,
+            SensorStateClass.MEASUREMENT,
+            0.001,
+        )
+    )
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "current_l2",
+            "Current L2",
+            "A",
+            SensorDeviceClass.CURRENT,
+            SensorStateClass.MEASUREMENT,
+            0.001,
+        )
+    )
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "current_l3",
+            "Current L3",
+            "A",
+            SensorDeviceClass.CURRENT,
+            SensorStateClass.MEASUREMENT,
+            0.001,
+        )
+    )
     return ret

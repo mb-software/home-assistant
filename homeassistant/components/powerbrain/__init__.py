@@ -32,6 +32,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Store an API object for your platforms to access
     hass.data[DOMAIN][entry.entry_id] = brain
 
+    # Create the updatecoordinator instance
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
