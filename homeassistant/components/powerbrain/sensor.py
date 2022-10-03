@@ -16,7 +16,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .__init__ import PowerbrainUpdateCoordinator
+from .__init__ import PowerbrainUpdateCoordinator, get_entity_deviceinfo
 from .const import DOMAIN
 from .powerbrain import Device, Powerbrain
 
@@ -88,26 +88,12 @@ class PowerbrainDeviceSensor(CoordinatorEntity, SensorEntity):
                 self.device.attributes[self.attribute] * self.state_modifier
             )
 
-        # if self.factor != 1:
-        #     self._attr_native_value = (
-        #         self.device.attributes[self.attribute] * self.factor
-        #     )
-        # else:
-        #     self._attr_native_value = self.device.attributes[self.attribute]
         self.async_write_ha_state()
 
     @property
     def device_info(self) -> DeviceInfo:
         """Information of the parent device."""
-        return {
-            "identifiers": {
-                # Serial numbers are unique identifiers within a specific domain
-                (DOMAIN, self.device.name)
-            },
-            "name": self.device.name,
-            "manufacturer": "cFos",
-            "model": self.device.attributes["model"],
-        }
+        return get_entity_deviceinfo(self.device)
 
 
 def create_meter_entities(coordinator: PowerbrainUpdateCoordinator, device: Device):
@@ -179,6 +165,36 @@ def create_meter_entities(coordinator: PowerbrainUpdateCoordinator, device: Devi
             0.001,
         )
     )
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "voltage_l1",
+            "Voltage L1",
+            "V",
+            SensorDeviceClass.VOLTAGE,
+        )
+    )
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "voltage_l2",
+            "Voltage L2",
+            "V",
+            SensorDeviceClass.VOLTAGE,
+        )
+    )
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "voltage_l3",
+            "Voltage L3",
+            "V",
+            SensorDeviceClass.VOLTAGE,
+        )
+    )
     return ret
 
 
@@ -222,6 +238,42 @@ def create_evse_entities(coordinator: PowerbrainUpdateCoordinator, device: Devic
                 5: "5: Error",
                 6: "6: Offline",
             }[s],
+        )
+    )
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "current_l1",
+            "Current L1",
+            "A",
+            SensorDeviceClass.CURRENT,
+            SensorStateClass.MEASUREMENT,
+            0.001,
+        )
+    )
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "current_l2",
+            "Current L2",
+            "A",
+            SensorDeviceClass.CURRENT,
+            SensorStateClass.MEASUREMENT,
+            0.001,
+        )
+    )
+    ret.append(
+        PowerbrainDeviceSensor(
+            coordinator,
+            device,
+            "current_l3",
+            "Current L3",
+            "A",
+            SensorDeviceClass.CURRENT,
+            SensorStateClass.MEASUREMENT,
+            0.001,
         )
     )
     return ret

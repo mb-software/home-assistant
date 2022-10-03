@@ -8,15 +8,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN
-from .powerbrain import Powerbrain
+from .powerbrain import Device, Powerbrain
 
 _LOGGER = logging.getLogger(__name__)
 
 # List the platforms that you want to support.
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.NUMBER]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -81,3 +82,16 @@ class PowerbrainUpdateCoordinator(DataUpdateCoordinator):
             await self.hass.async_add_executor_job(self.brain.update_device_status)
         except Exception as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
+
+
+def get_entity_deviceinfo(device: Device) -> DeviceInfo:
+    """Get Entity device info from Powerbrain device instance."""
+    return {
+        "identifiers": {
+            # Serial numbers are unique identifiers within a specific domain
+            (DOMAIN, device.name)
+        },
+        "name": device.name,
+        "manufacturer": "cFos",
+        "model": device.attributes["model"],
+    }
