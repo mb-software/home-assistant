@@ -4,20 +4,8 @@ import requests
 
 API_GET_PARAMS = "/cnf?cmd=get_params"
 API_GET_DEV_INFO = "/cnf?cmd=get_dev_info"
-
-
-class Device:
-    """Device connected via Powerbrain."""
-
-    def __init__(self, attr):
-        """Initialize the device instance."""
-        self.name = attr["name"]
-        self.dev_id = attr["dev_id"]
-        self.attributes = attr
-
-    def update_status(self, attr):
-        """Update attributes."""
-        self.attributes = attr
+API_OVERRIDE_DEVICE = "/cnf?cmd=override_device&dev_id="
+API_OVERRIDE_FLAG_AMPS = "&mamps="
 
 
 class Powerbrain:
@@ -41,7 +29,10 @@ class Powerbrain:
 
         for device_attr in dev_info["devices"]:
             if device_attr["device_enabled"]:
-                self.devices[device_attr["dev_id"]] = Device(device_attr)
+                if device_attr["is_evse"]:
+                    self.devices[device_attr["dev_id"]] = Evse(device_attr, self)
+                else:
+                    self.devices[device_attr["dev_id"]] = Device(device_attr, self)
 
     def update_device_status(self):
         """Update the device status."""
@@ -49,3 +40,29 @@ class Powerbrain:
         for k, device in self.devices.items():
             attr = next((x for x in dev_info["devices"] if x["dev_id"] == k), "")
             device.update_status(attr)
+
+
+class Device:
+    """Device connected via Powerbrain."""
+
+    def __init__(self, attr, brain: Powerbrain):
+        """Initialize the device instance."""
+        self.name = attr["name"]
+        self.dev_id = attr["dev_id"]
+        self.attributes = attr
+        self.brain = brain
+
+    def update_status(self, attr):
+        """Update attributes."""
+        self.attributes = attr
+
+
+class Evse(Device):
+    """EVSE device."""
+
+    def override_current_limit(self, value: float):
+        """Override max charging current."""
+        requests.get(
+            f"{self.brain.host}{API_OVERRIDE_DEVICE}{self.dev_id}{API_OVERRIDE_FLAG_AMPS}{value}",
+            timeout=5,
+        )

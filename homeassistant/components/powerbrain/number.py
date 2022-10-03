@@ -9,7 +9,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .__init__ import PowerbrainUpdateCoordinator, get_entity_deviceinfo
 from .const import DOMAIN
-from .powerbrain import Device, Powerbrain
+from .powerbrain import Evse, Powerbrain
 
 
 async def async_setup_entry(
@@ -35,7 +35,7 @@ class EvseLimitCurrentEntity(CoordinatorEntity, NumberEntity):
     """Number input for overriding current limit."""
 
     def __init__(
-        self, coordinator: PowerbrainUpdateCoordinator, device: Device, name: str
+        self, coordinator: PowerbrainUpdateCoordinator, device: Evse, name: str
     ) -> None:
         """Initialize entity for charging current override."""
         super().__init__(coordinator)
@@ -49,8 +49,9 @@ class EvseLimitCurrentEntity(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
-        self._attr_native_value = value
-        self.async_write_ha_state()
+        await self.hass.async_add_executor_job(
+            self.device.override_current_limit, value * 1000
+        )
 
     @callback
     def _handle_coordinator_update(self) -> None:
