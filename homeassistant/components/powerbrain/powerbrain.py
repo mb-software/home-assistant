@@ -6,6 +6,7 @@ API_GET_PARAMS = "/cnf?cmd=get_params"
 API_GET_DEV_INFO = "/cnf?cmd=get_dev_info"
 API_OVERRIDE_DEVICE = "/cnf?cmd=override_device&dev_id="
 API_OVERRIDE_FLAG_AMPS = "&mamps="
+API_OVERRIDE_FLAGS = "&flags="
 
 
 class Powerbrain:
@@ -64,5 +65,12 @@ class Evse(Device):
         """Override max charging current."""
         requests.get(
             f"{self.brain.host}{API_OVERRIDE_DEVICE}{self.dev_id}{API_OVERRIDE_FLAG_AMPS}{value}",
+            timeout=5,
+        )
+
+    def disable_charging(self, disable: bool):
+        """Disable or enable charging."""
+        requests.get(
+            f"{self.brain.host}{API_OVERRIDE_DEVICE}{self.dev_id}{API_OVERRIDE_FLAGS}{'C' if disable else 'c'}",
             timeout=5,
         )

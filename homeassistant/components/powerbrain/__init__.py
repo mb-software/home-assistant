@@ -17,7 +17,7 @@ from .powerbrain import Device, Powerbrain
 _LOGGER = logging.getLogger(__name__)
 
 # List the platforms that you want to support.
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.NUMBER]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.NUMBER, Platform.SWITCH]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
