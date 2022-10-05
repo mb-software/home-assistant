@@ -74,3 +74,10 @@ class Evse(Device):
             f"{self.brain.host}{API_OVERRIDE_DEVICE}{self.dev_id}{API_OVERRIDE_FLAGS}{'C' if disable else 'c'}",
             timeout=5,
         )
+
+    def disable_charging_rules(self, disable: bool):
+        """Disable or enable charging rules."""
+        requests.get(
+            f"{self.brain.host}{API_OVERRIDE_DEVICE}{self.dev_id}{API_OVERRIDE_FLAGS}{'E' if disable else 'e'}",
+            timeout=5,
+        )

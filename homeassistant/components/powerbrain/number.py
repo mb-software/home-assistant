@@ -52,6 +52,7 @@ class EvseLimitCurrentEntity(CoordinatorEntity, NumberEntity):
         await self.hass.async_add_executor_job(
             self.device.override_current_limit, value * 1000
         )
+        await self.coordinator.async_request_refresh()
 
     @callback
     def _handle_coordinator_update(self) -> None:
