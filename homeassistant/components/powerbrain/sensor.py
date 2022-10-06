@@ -102,7 +102,12 @@ def create_meter_entities(coordinator: PowerbrainUpdateCoordinator, device: Devi
 
     ret.append(
         PowerbrainDeviceSensor(
-            coordinator, device, "power", "Power", "W", SensorDeviceClass.POWER
+            coordinator,
+            device,
+            "power",
+            "Power",
+            "VA" if device.attributes["is_va"] else "W",
+            SensorDeviceClass.POWER,
         )
     )
     ret.append(
